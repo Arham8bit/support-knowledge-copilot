@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Support Knowledge Copilot</title>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f1117;
+            color: #e4e6eb;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        /* ===== APP CONTAINER ===== */
+        .app {
+            width: 100%;
+            max-width: 900px;
+            height: 95vh;
+            max-height: 820px;
+            background: #1a1d27;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            padding: 18px 28px;
+            background: #222633;
+            border-bottom: 1px solid #2e3344;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-left .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .header-left h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .header-left h1 span {
+            color: #a29bfe;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            background: #2a2f42;
+            color: #8b93b0;
+        }
+
+        .status-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .status-badge .dot.error {
+            background: #f87171;
+        }
+
+        /* ===== UPLOAD BUTTON ===== */
+        .upload-btn {
+            background: #2a2f42;
+            border: none;
+            color: #e4e6eb;
+            padding: 6px 16px 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: #363d56;
+        }
+
+        .upload-btn i {
+            font-size: 14px;
+            color: #a29bfe;
+        }
+
+        /* ===== CHAT MESSAGES ===== */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .messages::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: #3a4058;
+            border-radius: 4px;
+        }
+
+        /* ===== MESSAGE BUBBLES ===== */
+        .message {
+            max-width: 85%;
+            padding: 14px 20px;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 15px;
+            word-wrap: break-word;
+            animation: fadeSlide 0.3s ease-out;
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #6c5ce7, #7c6cf0);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: #252a3d;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message .sources {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #323a52;
+            font-size: 13px;
+            color: #8b93b0;
+        }
+
+        .message .sources .source-tag {
+            display: inline-block;
+            background: #2a2f42;
+            padding: 2px 12px;
+            border-radius: 12px;
+            margin-right: 6px;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #a29bfe;
+        }
+
+        .message .sources .source-tag i {
+            margin-right: 4px;
+            font-size: 10px;
+        }
+
+        /* ===== WELCOME ===== */
+        .welcome {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7288;
+        }
+
+        .welcome .icon {
+            font-size: 48px;
+            color: #2a2f42;
+            margin-bottom: 12px;
+        }
+
+        .welcome h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #d1d5e0;
+            margin-bottom: 6px;
+        }
+
+        .welcome p {
+            font-size: 14px;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+
+        /* ===== TYPING INDICATOR ===== */
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: #252a3d;
+            padding: 14px 24px;
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            gap: 4px;
+        }
+
+        .typing-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7288;
+            animation: typingBounce 1.4s infinite both;
+        }
+
+        .typing-indicator .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        /* ===== INPUT AREA ===== */
+        .input-area {
+            padding: 16px 24px 20px;
+            border-top: 1px solid #2e3344;
+            background: #1a1d27;
+            flex-shrink: 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            background: #222633;
+            border: 1px solid #2e3344;
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #e4e6eb;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border 0.2s;
+            max-height: 120px;
+            min-height: 48px;
+            line-height: 1.5;
+        }
+
+        .input-area textarea:focus {
+            border-color: #6c5ce7;
+        }
+
+        .input-area textarea::placeholder {
+            color: #5a627a;
+        }
+
+        .input-area .send-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, #6c5ce7, #7c6cf0);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-area .send-btn:hover {
+            transform: scale(1.04);
+        }
+
+        .input-area .send-btn:active {
+            transform: scale(0.94);
+        }
+
+        .input-area .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== HIDDEN FILE INPUT ===== */
+        #fileInput {
+            display: none;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .app {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                padding: 0;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .header {
+                padding: 14px 18px;
+            }
+
+            .header-left h1 {
+                font-size: 15px;
+            }
+
+            .messages {
+                padding: 16px 18px;
+            }
+
+            .message {
+                max-width: 92%;
+                font-size: 14px;
+                padding: 12px 16px;
+            }
+
+            .input-area {
+                padding: 12px 16px 16px;
+                gap: 8px;
+            }
+
+            .upload-btn span {
+                display: none;
+            }
+        }
+
+        /* ===== UPLOAD PROGRESS ===== */
+        .upload-progress {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            background: #222633;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #8b93b0;
+        }
+
+        .upload-progress .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2e3344;
+            border-top-color: #a29bfe;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo"><i class="fas fa-brain"></i></div>
+                <h1>Support <span>Copilot</span></h1>
+            </div>
+            <div class="header-right">
+                <span class="status-badge" id="statusBadge">
+                    <span class="dot" id="statusDot"></span>
+                    <span id="statusText">Connecting...</span>
+                </span>
+                <button class="upload-btn" id="uploadBtn" title="Upload a PDF">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Upload PDF</span>
+                </button>
+                <input type="file" id="fileInput" accept=".pdf" />
+                <span class="upload-progress" id="uploadProgress">
+                    <span class="spinner"></span>
+                    <span id="uploadStatus">Uploading...</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- MESSAGES -->
+        <div class="messages" id="messages">
+            <div class="welcome" id="welcome">
+                <div class="icon"><i class="fas fa-file-alt"></i></div>
+                <h2>Ask about your documents</h2>
+                <p>Upload a PDF and ask questions. The AI will answer with sources.</p>
+            </div>
+        </div>
+
+        <!-- TYPING INDICATOR -->
+        <div class="typing-indicator" id="typingIndicator">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+
+        <!-- INPUT -->
+        <div class="input-area">
+            <textarea id="inputBox" rows="1" placeholder="Ask a question about your documents..." enterkeyhint="send"></textarea>
+            <button class="send-btn" id="sendBtn" aria-label="Send">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================================
+        //  CONFIG
+        // ============================================================
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // ============================================================
+        //  DOM REFS
+        // ============================================================
+        const messagesEl = document.getElementById('messages');
+        const welcomeEl = document.getElementById('welcome');
+        const inputBox = document.getElementById('inputBox');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingEl = document.getElementById('typingIndicator');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        let isProcessing = false;
+
+        // ============================================================
+        //  HEALTH CHECK
+        // ============================================================
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    const data = await res.json();
+                    statusDot.className = 'dot';
+                    statusText.textContent = `Online · ${data.chunks_indexed || 0} chunks`;
+                    return true;
+                }
+                throw new Error('Health check failed');
+            } catch (_) {
+                statusDot.className = 'dot error';
+                statusText.textContent = 'Offline — start server';
+                return false;
+            }
+        }
+
+        // ============================================================
+        //  SEND MESSAGE
+        // ============================================================
+        async function sendMessage() {
+            const question = inputBox.value.trim();
+            if (!question || isProcessing) return;
+
+            isProcessing = true;
+            sendBtn.disabled = true;
+            inputBox.disabled = true;
+
+            // Hide welcome
+            welcomeEl.style.display = 'none';
+
+            // Add user message
+            addMessage(question, 'user');
+            inputBox.value = '';
+            autoResize();
+
+            // Show typing
+            typingEl.style.display = 'flex';
+            scrollToBottom();
+
+            try {
+                const res = await fetch(`${API_BASE}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                });
+
+                typingEl.style.display = 'none';
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Server error');
+                }
+
+                const data = await res.json();
+                addAssistantMessage(data.answer, data.sources || []);
+
+            } catch (err) {
+                typingEl.style.display = 'none';
+                addMessage(`❌ Error: ${err.message}`, 'assistant');
+            }
+
+            isProcessing = false;
+            sendBtn.disabled = false;
+            inputBox.disabled = false;
+            inputBox.focus();
+            scrollToBottom();
+        }
+
+        // ============================================================
+        //  ADD MESSAGE HELPERS
+        // ============================================================
+        function addMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.textContent = text;
+            messagesEl.appendChild(div);
+            scrollToBottom();
+        }
+
+        function addAssistantMessage(answer, sources) {
+            const div = document.createElement('div');
+            div.className = 'message assistant';
+
+            // Answer text
+            const textP = document.createElement('div');
+            textP.textContent = answer;
+            div.appendChild(textP);
+
+            // Sources
+            if (sources && sources.length > 0) {
+                const srcDiv = document.createElement('div');
+                srcDiv.className = 'sources';
+                srcDiv.innerHTML = `<i class="fas fa-book-open" style="margin-right:6px;color:#a29bfe;"></i> Sources: `;
+                sources.forEach(s => {
+                    const tag = document.createElement('span');
+                    tag.className = 'source-tag';
+                    tag.innerHTML = `<i class="fas fa-file-pdf"></i> ${s.source} · p.${s.page}`;
+                    srcDiv.appendChild(tag);
+                });
+                div.appendChild(srcDiv);
+            }
+
+            messagesEl.appendChild(div);
+            scrollToBottom();
+        }
+
+        // ============================================================
+        //  UPLOAD PDF
+        // ============================================================
+        async function uploadPDF(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            uploadProgress.style.display = 'flex';
+            uploadStatus.textContent = `Uploading ${file.name}...`;
+            uploadBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                uploadProgress.style.display = 'none';
+                uploadBtn.disabled = false;
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Upload failed');
+                }
+
+                const data = await res.json();
+                addMessage(`✅ ${file.name} uploaded successfully! ${data.total_chunks || ''} chunks indexed.`, 'assistant');
+
+                // Refresh health status
+                await checkHealth();
+
+            } catch (err) {
+                uploadProgress.style.display = 'none';
+                uploadBtn.disabled = false;
+                addMessage(`❌ Upload failed: ${err.message}`, 'assistant');
+            }
+        }
+
+        // ============================================================
+        //  TEXTAREA AUTO-RESIZE
+        // ============================================================
+        function autoResize() {
+            inputBox.style.height = 'auto';
+            inputBox.style.height = Math.min(inputBox.scrollHeight, 120) + 'px';
+        }
+
+        inputBox.addEventListener('input', autoResize);
+
+        // ============================================================
+        //  SCROLL
+        // ============================================================
+        function scrollToBottom() {
+            requestAnimationFrame(() => {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            });
+        }
+
+        // ============================================================
+        //  KEYBOARD SHORTCUTS
+        // ============================================================
+        inputBox.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        // ============================================================
+        //  FILE UPLOAD HANDLER
+        // ============================================================
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadPDF(file);
+            }
+            fileInput.value = '';
+        });
+
+        // ============================================================
+        //  INIT
+        // ============================================================
+        checkHealth();
+        setInterval(checkHealth, 30000); // check every 30s
+
+        // Focus input on load
+        inputBox.focus();
+
+        console.log('🚀 Support Copilot ready!');
+        console.log('📡 API:', API_BASE);
+        console.log('📄 Upload PDFs and ask questions.');
+    </script>
+
+</body>
+</html>
