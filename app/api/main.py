@@ -3,7 +3,8 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'scripts'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
+import shutil
 from pydantic import BaseModel
 from google import genai
 import chromadb
@@ -21,6 +22,14 @@ app = FastAPI(
     title="Support Knowledge Copilot",
     description="A RAG-powered API that answers questions from your documents with citations",
     version="1.0.0"
+)
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- Load everything once at startup, not on every request ---
@@ -66,7 +75,26 @@ def health():
         "chunks_indexed": len(chunks)
     }
 
-
+@app.post("/upload")
+async def upload_pdf(file: UploadFile = File(...)):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+    
+    save_path = os.path.join(RAW_DIR, file.filename)
+    
+    with open(save_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Rebuild the BM25 index with the new document
+    global chunks, bm25
+    documents = load_pdfs(RAW_DIR)
+    chunks = chunk_documents(documents)
+    bm25 = build_bm25_index(chunks)
+    
+    return {
+        "message": f"{file.filename} uploaded successfully",
+        "total_chunks": len(chunks)
+    }
 @app.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest):
     if not request.question.strip():
