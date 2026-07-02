@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse  # <-- Added to serve the HTML file
 from pydantic import BaseModel
 import shutil
 
@@ -68,15 +69,21 @@ class QueryResponse(BaseModel):
 
 
 # --- Routes ---
+
+# Based on your repository tree, your index.html is in the project root directory.
+# This calculates the path to the root folder relative to app/api/main.py
+HTML_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "index.html"))
+
 @app.get("/")
 def root():
+    # If the index.html exists, serve it directly to the browser
+    if os.path.exists(HTML_PATH):
+        return FileResponse(HTML_PATH)
+    
+    # Fallback response in case the path is slightly off
     return {
-        "message": "Support Knowledge Copilot API is running",
-        "endpoints": {
-            "query": "POST /query",
-            "health": "GET /health",
-            "upload": "POST /upload"
-        }
+        "error": f"index.html not found at {HTML_PATH}. Please check its location.",
+        "message": "Support Knowledge Copilot API is running"
     }
 
 
