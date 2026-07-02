@@ -30,11 +30,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-print("Loading documents and building BM25 index...")
-documents = load_pdfs(RAW_DIR)
-chunks = chunk_documents(documents)
-bm25 = build_bm25_index(chunks)
-print(f"Ready. {len(chunks)} chunks indexed.")
+# --- Graceful startup — works even if data/raw/ is empty ---
+print("Starting Support Knowledge Copilot...")
+
+os.makedirs(RAW_DIR, exist_ok=True)
+os.makedirs(VECTOR_DB_PATH, exist_ok=True)
+
+pdf_files = [f for f in os.listdir(RAW_DIR) if f.endswith('.pdf')]
+
+if pdf_files:
+    documents = load_pdfs(RAW_DIR)
+    chunks = chunk_documents(documents)
+    bm25 = build_bm25_index(chunks)
+    print(f"Ready. {len(chunks)} chunks indexed.")
+else:
+    documents = []
+    chunks = []
+    bm25 = build_bm25_index([])
+    print("Ready. No PDFs found — waiting for upload.")
 
 
 # --- Models ---
@@ -59,7 +72,11 @@ class QueryResponse(BaseModel):
 def root():
     return {
         "message": "Support Knowledge Copilot API is running",
-        "endpoints": {"query": "POST /query", "health": "GET /health", "upload": "POST /upload"}
+        "endpoints": {
+            "query": "POST /query",
+            "health": "GET /health",
+            "upload": "POST /upload"
+        }
     }
 
 
@@ -73,6 +90,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
 
+    os.makedirs(RAW_DIR, exist_ok=True)
     save_path = os.path.join(RAW_DIR, file.filename)
 
     with open(save_path, "wb") as buffer:
@@ -94,6 +112,12 @@ async def upload_pdf(file: UploadFile = File(...)):
 def query(request: QueryRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    if len(chunks) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No documents indexed yet. Please upload a PDF first."
+        )
 
     try:
         where_filter = {"source": request.source_filter} if request.source_filter else None
