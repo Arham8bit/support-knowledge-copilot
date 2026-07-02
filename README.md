@@ -1,4 +1,13 @@
-<<<<<<< HEAD
+---
+title: Support Knowledge Copilot
+emoji: 🧠
+colorFrom: purple
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
+<div align="center">
 # 📚 Support Knowledge Copilot
 
 > **A production-grade Retrieval-Augmented Generation (RAG) API that answers questions from your documents using Hybrid Retrieval (Semantic Search + BM25) with verified page-level citations.**
