@@ -5,9 +5,9 @@ colorFrom: purple
 colorTo: blue
 sdk: docker
 pinned: false
+license: mit
 ---
 
-<div align="center">
 # 📚 Support Knowledge Copilot
 
 > **A production-grade Retrieval-Augmented Generation (RAG) API that answers questions from your documents using Hybrid Retrieval (Semantic Search + BM25) with verified page-level citations.**
@@ -46,16 +46,7 @@ Instead of relying solely on semantic search, this project combines **dense retr
 
 > *(Add screenshots or a GIF here later.)*
 
-```
-PDF Upload
-      ↓
-Hybrid Retrieval
-      ↓
-Grounded Answer
-      ↓
-Verified Citations
-```
-
+PDF Upload↓Hybrid Retrieval↓Grounded Answer↓Verified Citations
 ---
 
 # 💬 Example
@@ -64,18 +55,10 @@ Verified Citations
 
 ```http
 POST /query
-```
-
-```json
-{
+JSON{
   "question": "What is the purpose of the state vector?"
 }
-```
-
-### Response
-
-```json
-{
+ResponseJSON{
   "question": "What is the purpose of the state vector?",
   "answer": "The objective of defining a complete system state is to estimate the motion of an object moving in three-dimensional space (Source: doc1.pdf, Page: 5).",
   "sources": [
@@ -89,64 +72,14 @@ POST /query
     }
   ]
 }
-```
-
----
-
-# ❓ Why Hybrid Retrieval?
-
-Most introductory RAG projects rely solely on vector search. This project instead combines two complementary retrieval techniques.
-
-### Semantic Search
-
-Uses embeddings to retrieve text with similar meaning.
-
-Example:
-
-> "I forgot my login"
-
-can successfully retrieve
-
-> "Reset your password"
-
-even though the wording is different.
-
----
-
-### BM25 Keyword Search
-
-Finds exact keyword matches.
-
-Useful for questions such as:
-
-* Equation 15
-* Error Code 500
-* API Key
-* Configuration File
-
-where semantic embeddings often perform poorly.
-
----
-
-### Reciprocal Rank Fusion (RRF)
-
-Instead of combining incompatible similarity scores, RRF merges the ranked retrieval lists based solely on their positions.
-
-This avoids score normalization issues while improving recall.
-
----
-
-# 🏗 Architecture
-
-```text
-                    ┌────────────────────┐
+❓ Why Hybrid Retrieval?Most introductory RAG projects rely solely on vector search. This project instead combines two complementary retrieval techniques.Semantic SearchUses embeddings to retrieve text with similar meaning.Example:"I forgot my login"can successfully retrieve"Reset your password"even though the wording is different.BM25 Keyword SearchFinds exact keyword matches.Useful for questions such as:Equation 15Error Code 500API KeyConfiguration Filewhere semantic embeddings often perform poorly.Reciprocal Rank Fusion (RRF)Instead of combining incompatible similarity scores, RRF merges the ranked retrieval lists based solely on their positions.This avoids score normalization issues while improving recall.🏗 ArchitecturePlaintext                    ┌────────────────────┐
                     │   User Question    │
                     └─────────┬──────────┘
                               │
                ┌──────────────┴──────────────┐
                │                             │
                ▼                             ▼
-      Semantic Search                 BM25 Search
+      Semantic Search               BM25 Search
      (Chroma + Gemini)               (rank-bm25)
                │                             │
                └──────────────┬──────────────┘
@@ -154,22 +87,15 @@ This avoids score normalization issues while improving recall.
                 Reciprocal Rank Fusion
                               │
                               ▼
-                    Top Relevant Chunks
-                    Source + Page Metadata
+                     Top Relevant Chunks
+                     Source + Page Metadata
                               │
                               ▼
-                     Gemini 2.5 Flash
+                      Gemini 2.5 Flash
                               │
                               ▼
-              Grounded Answer + Citations
-```
-
----
-
-# 🔄 End-to-End Workflow
-
-```text
-PDF Documents
+                Grounded Answer + Citations
+🔄 End-to-End WorkflowPlaintextPDF Documents
       │
       ▼
 Text Extraction (pypdf)
@@ -205,30 +131,7 @@ Gemini 2.5 Flash
       │
       ▼
 Grounded Answer with Citations
-```
-
----
-
-# 🛠 Tech Stack
-
-| Category          | Technology                               |
-| ----------------- | ---------------------------------------- |
-| Backend           | FastAPI, Uvicorn                         |
-| PDF Processing    | pypdf                                    |
-| Chunking          | LangChain RecursiveCharacterTextSplitter |
-| Embeddings        | Gemini Embedding-001                     |
-| Vector Database   | ChromaDB                                 |
-| Keyword Retrieval | rank-bm25                                |
-| Hybrid Search     | Reciprocal Rank Fusion                   |
-| LLM               | Gemini 2.5 Flash                         |
-| Testing           | Pytest                                   |
-
----
-
-# 📂 Project Structure
-
-```text
-support-knowledge-copilot/
+🛠 Tech StackCategoryTechnologyBackendFastAPI, UvicornPDF ProcessingpypdfChunkingLangChain RecursiveCharacterTextSplitterEmbeddingsGemini Embedding-001Vector DatabaseChromaDBKeyword Retrievalrank-bm25Hybrid SearchReciprocal Rank FusionLLMGemini 2.5 FlashTestingPytest📂 Project StructurePlaintextsupport-knowledge-copilot/
 │
 ├── app/
 │   ├── api/
@@ -254,128 +157,26 @@ support-knowledge-copilot/
 ├── .env.example
 ├── requirements.txt
 └── README.md
-```
-
----
-
-# 🚀 Getting Started
-
-## 1. Clone the Repository
-
-```bash
-git clone https://github.com/Arham8bit/support-knowledge-copilot.git
+🚀 Getting Started1. Clone the RepositoryBashgit clone [https://github.com/Arham8bit/support-knowledge-copilot.git](https://github.com/Arham8bit/support-knowledge-copilot.git)
 
 cd support-knowledge-copilot
-```
-
----
-
-## 2. Create a Virtual Environment
-
-### Windows
-
-```bash
-python -m venv .venv
+2. Create a Virtual EnvironmentWindowsBashpython -m venv .venv
 
 .venv\Scripts\activate
-```
-
-### Mac/Linux
-
-```bash
-python3 -m venv .venv
+Mac/LinuxBashpython3 -m venv .venv
 
 source .venv/bin/activate
-```
-
----
-
-## 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 4. Configure Environment Variables
-
-Copy the example file.
-
-```bash
-cp .env.example .env
-```
-
-Add your Google AI Studio API key.
-
-```
-GOOGLE_API_KEY=your_api_key_here
-```
-
----
-
-## 5. Add PDF Documents
-
-Place your PDF files inside
-
-```text
-data/raw/
-```
-
----
-
-## 6. Build the Vector Index
-
-```bash
-python scripts/ingest.py
-```
-
-The ingestion pipeline:
-
-* extracts text
-* cleans documents
-* creates chunks
-* generates embeddings
-* stores vectors in ChromaDB
-
-Existing documents are skipped automatically.
-
----
-
-## 7. Start the API
-
-```bash
-uvicorn app.api.main:app --reload
-```
-
----
-
-## 8. Open Interactive API Docs
-
-```
-http://127.0.0.1:8000/docs
-```
-
----
-
-# 📡 API
-
-## POST `/query`
-
-Ask questions about your documents.
-
-### Request
-
-```json
-{
+3. Install DependenciesBashpip install -r requirements.txt
+4. Configure Environment VariablesCopy the example file.Bashcp .env.example .env
+Add your Google AI Studio API key.GOOGLE_API_KEY=your_api_key_here
+5. Add PDF DocumentsPlace your PDF files insidePlaintextdata/raw/
+6. Build the Vector IndexBashpython scripts/ingest.py
+The ingestion pipeline:extracts textcleans documentscreates chunksgenerates embeddingsstores vectors in ChromaDBExisting documents are skipped automatically.7. Start the APIBashuvicorn app.api.main:app --reload
+8. Open Interactive API Docs[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+📡 APIPOST /queryAsk questions about your documents.RequestJSON{
   "question":"your question"
 }
-```
-
-### Response
-
-```json
-{
+ResponseJSON{
   "question":"your question",
   "answer":"Grounded answer with citations",
   "sources":[
@@ -385,99 +186,9 @@ Ask questions about your documents.
       }
   ]
 }
-```
-
----
-
-## GET `/health`
-
-Returns server status.
-
-```json
-{
+GET /healthReturns server status.JSON{
   "status":"healthy",
   "chunks_indexed":215
 }
-```
-
----
-
-## GET `/`
-
-Displays available API endpoints.
-
----
-
-# 🧪 Running Tests
-
-Run all tests.
-
-```bash
-pytest tests/
-```
-
-Current tests cover ingestion pipeline edge cases.
-
----
-
-# ⚙ Engineering Decisions
-
-<details>
-
-<summary><strong>Why not use LangChain's built-in RAG chain?</strong></summary>
-
-Instead of relying entirely on LangChain abstractions, the embedding pipeline was implemented manually to gain experience with batching, retry logic, metadata preservation, and debugging production issues.
-
-</details>
-
-<details>
-
-<summary><strong>Why chunk at 800 characters with 100-character overlap?</strong></summary>
-
-Chunk overlap prevents important information from being split across chunk boundaries. A chunk size of 800 characters preserves semantic context while remaining focused enough for accurate retrieval.
-
-</details>
-
-<details>
-
-<summary><strong>Why Reciprocal Rank Fusion?</strong></summary>
-
-Semantic similarity scores and BM25 scores are measured on different scales. RRF combines retrieval results using rank positions instead of raw scores, making it robust without requiring score normalization.
-
-</details>
-
----
-
-# 🚧 Future Improvements
-
-* Cross-Encoder Re-ranking
-* OCR Support
-* Docker Deployment
-* Authentication
-* Streaming Responses
-* Multi-user Knowledge Bases
-* Chat History
-* Document Versioning
-
----
-
-# 📄 License
-
-This project is released under the MIT License.
-
----
-
-
-=======
----
-title: Support Knowledge Copilot
-emoji: 🐨
-colorFrom: yellow
-colorTo: yellow
-sdk: docker
-pinned: false
-license: mit
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> 63d7f2a69e33fc592a58c27335173d16b31dbf60
+GET /Displays available API endpoints.🧪 Running TestsRun all tests.Bashpytest tests/
+Current tests cover ingestion pipeline edge cases.⚙ Engineering DecisionsInstead of relying entirely on LangChain abstractions, the embedding pipeline was implemented manually to gain experience with batching, retry logic, metadata preservation, and debugging production issues.Chunk overlap prevents important information from being split across chunk boundaries. A chunk size of 800 characters preserves semantic context while remaining focused enough for accurate retrieval.Semantic similarity scores and BM25 scores are measured on different scales. RRF combines retrieval results using rank positions instead of raw scores, making it robust without requiring score normalization.🚧 Future ImprovementsCross-Encoder Re-rankingOCR SupportDocker DeploymentAuthenticationStreaming ResponsesMulti-user Knowledge BasesChat HistoryDocument Versioning📄 LicenseThis project is released under the MIT License.
