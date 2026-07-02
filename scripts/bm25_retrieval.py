@@ -7,18 +7,31 @@ from ingest import load_pdfs, chunk_documents
 
 
 def build_bm25_index(chunks):
-    tokenized_corpus = [chunk["text"].lower().split() for chunk in chunks]
+    # If chunks list is empty, initialize with a fallback tokenized document to prevent ZeroDivisionError
+    if not chunks:
+        print("⚠️ Warning: No chunks found. Initializing dummy BM25 index to avoid division by zero.")
+        tokenized_corpus = [["empty", "index", "placeholder"]]
+    else:
+        tokenized_corpus = [chunk["text"].lower().split() for chunk in chunks]
+        
     bm25 = BM25Okapi(tokenized_corpus)
     return bm25
 
 
 def bm25_search(bm25, chunks, query, n_results=5, source_filter=None):
+    # Safely handle searches on an empty or dummy index
+    if not chunks:
+        return []
+        
     tokenized_query = query.lower().split()
     scores = bm25.get_scores(tokenized_query)
 
     scored_chunks = []
     for i, score in enumerate(scores):
         if score > 0:
+            # Prevent out-of-bounds error if working with dummy fallback index
+            if i >= len(chunks):
+                continue
             if source_filter and chunks[i]["source"] != source_filter:
                 continue
             scored_chunks.append({
