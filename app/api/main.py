@@ -5,7 +5,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse  # <-- Added to serve the HTML file
+from fastapi.responses import FileResponse 
+from fastapi.staticfiles import StaticFiles  # <-- Added to handle your frontend folder's static files
 from pydantic import BaseModel
 import shutil
 
@@ -68,15 +69,16 @@ class QueryResponse(BaseModel):
     sources: list[SourceItem]
 
 
-# --- Routes ---
+# --- Routes & Static Configuration ---
 
-# Based on your repository tree, your index.html is in the project root directory.
-# This calculates the path to the root folder relative to app/api/main.py
-HTML_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "index.html"))
+# Path to your index.html inside the frontend folder
+HTML_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html"))
+# Path to the frontend folder directory for mounting static files
+FRONTEND_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
 
 @app.get("/")
 def root():
-    # If the index.html exists, serve it directly to the browser
+    # If the index.html exists inside frontend/, serve it directly to the browser
     if os.path.exists(HTML_PATH):
         return FileResponse(HTML_PATH)
     
@@ -160,3 +162,6 @@ def query(request: QueryRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Mount the frontend directory under the '/static' path so styles/scripts load cleanly
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
