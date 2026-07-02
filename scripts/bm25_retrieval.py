@@ -12,13 +12,15 @@ def build_bm25_index(chunks):
     return bm25
 
 
-def bm25_search(bm25, chunks, query, n_results=5):
+def bm25_search(bm25, chunks, query, n_results=5, source_filter=None):
     tokenized_query = query.lower().split()
     scores = bm25.get_scores(tokenized_query)
 
     scored_chunks = []
     for i, score in enumerate(scores):
         if score > 0:
+            if source_filter and chunks[i]["source"] != source_filter:
+                continue
             scored_chunks.append({
                 "source": chunks[i]["source"],
                 "page": chunks[i]["page"],
@@ -35,15 +37,12 @@ if __name__ == "__main__":
     RAW_DIR = "data/raw"
     documents = load_pdfs(RAW_DIR)
     chunks = chunk_documents(documents)
-
     bm25 = build_bm25_index(chunks)
 
     query = "What is the purpose of the state vector?"
     results = bm25_search(bm25, chunks, query, n_results=3)
 
-    print(f"BM25 results for: '{query}'\n")
     for i, result in enumerate(results):
-        print(f"--- Result {i+1} (BM25 score: {result['bm25_score']:.4f}) ---")
+        print(f"\n--- Result {i+1} (BM25 score: {result['bm25_score']:.4f}) ---")
         print(f"Source: {result['source']} | Page: {result['page']}")
         print(f"Text: {result['text'][:300]}")
-        print()

@@ -12,7 +12,7 @@ load_dotenv()
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
-def semantic_search(query, n_results=5):
+def semantic_search(query, n_results=5, where=None):
     chroma_client = chromadb.PersistentClient(path="data/vector_db")
     collection = chroma_client.get_collection(name="support_docs")
 
@@ -21,10 +21,14 @@ def semantic_search(query, n_results=5):
         contents=query
     ).embeddings[0].values
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results
-    )
+    query_params = {
+        "query_embeddings": [query_embedding],
+        "n_results": n_results
+    }
+    if where:
+        query_params["where"] = where
+
+    results = collection.query(**query_params)
 
     hits = []
     for i in range(len(results["ids"][0])):
@@ -70,18 +74,11 @@ if __name__ == "__main__":
 
     query = "What is the purpose of the state vector?"
 
-    print("Running semantic search...")
     semantic_results = semantic_search(query, n_results=5)
-
-    print("Running BM25 search...")
     bm25_results = bm25_search(bm25, chunks, query, n_results=5)
-
-    print("Fusing results...\n")
     fused = reciprocal_rank_fusion(semantic_results, bm25_results)
 
-    print(f"Hybrid results for: '{query}'\n")
     for i, result in enumerate(fused[:3]):
-        print(f"--- Result {i+1} ---")
+        print(f"\n--- Result {i+1} ---")
         print(f"Source: {result['source']} | Page: {result['page']}")
         print(f"Text: {result['text'][:300]}")
-        print()

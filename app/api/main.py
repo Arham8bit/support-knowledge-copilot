@@ -4,10 +4,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'scripts'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
-import shutil
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from google import genai
-import chromadb
+import shutil
 
 from scripts.ingest import load_pdfs, chunk_documents
 from scripts.bm25_retrieval import build_bm25_index, bm25_search
@@ -23,7 +22,6 @@ app = FastAPI(
     description="A RAG-powered API that answers questions from your documents with citations",
     version="1.0.0"
 )
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Load everything once at startup, not on every request ---
 print("Loading documents and building BM25 index...")
 documents = load_pdfs(RAW_DIR)
 chunks = chunk_documents(documents)
@@ -40,9 +37,10 @@ bm25 = build_bm25_index(chunks)
 print(f"Ready. {len(chunks)} chunks indexed.")
 
 
-# --- Request/Response models ---
+# --- Models ---
 class QueryRequest(BaseModel):
     question: str
+    source_filter: str = None
 
 
 class SourceItem(BaseModel):
@@ -61,48 +59,55 @@ class QueryResponse(BaseModel):
 def root():
     return {
         "message": "Support Knowledge Copilot API is running",
-        "endpoints": {
-            "query": "POST /query",
-            "health": "GET /health"
-        }
+        "endpoints": {"query": "POST /query", "health": "GET /health", "upload": "POST /upload"}
     }
 
 
 @app.get("/health")
 def health():
-    return {
-        "status": "healthy",
-        "chunks_indexed": len(chunks)
-    }
+    return {"status": "healthy", "chunks_indexed": len(chunks)}
+
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
-    
+
     save_path = os.path.join(RAW_DIR, file.filename)
-    
+
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
-    # Rebuild the BM25 index with the new document
+
     global chunks, bm25
     documents = load_pdfs(RAW_DIR)
     chunks = chunk_documents(documents)
     bm25 = build_bm25_index(chunks)
-    
+
     return {
         "message": f"{file.filename} uploaded successfully",
+        "filename": file.filename,
         "total_chunks": len(chunks)
     }
+
+
 @app.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
     try:
-        semantic_results = semantic_search(request.question, n_results=TOP_K_RESULTS)
-        bm25_results = bm25_search(bm25, chunks, request.question, n_results=TOP_K_RESULTS)
+        where_filter = {"source": request.source_filter} if request.source_filter else None
+
+        semantic_results = semantic_search(
+            request.question,
+            n_results=TOP_K_RESULTS,
+            where=where_filter
+        )
+        bm25_results = bm25_search(
+            bm25, chunks, request.question,
+            n_results=TOP_K_RESULTS,
+            source_filter=request.source_filter
+        )
         fused = reciprocal_rank_fusion(semantic_results, bm25_results)
         top_chunks = fused[:TOP_K_FINAL]
 
