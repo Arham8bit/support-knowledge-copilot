@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 📚 Support Knowledge Copilot
 
 > **A production-grade Retrieval-Augmented Generation (RAG) API that answers questions from your documents using Hybrid Retrieval (Semantic Search + BM25) with verified page-level citations.**
@@ -458,3 +459,16 @@ This project is released under the MIT License.
 ---
 
 
+=======
+---
+title: Support Knowledge Copilot
+emoji: 🐨
+colorFrom: yellow
+colorTo: yellow
+sdk: docker
+pinned: false
+license: mit
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+>>>>>>> 63d7f2a69e33fc592a58c27335173d16b31dbf60

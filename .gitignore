@@ -4,5 +4,6 @@ __pycache__/
 *.pyc
 .DS_Store
 data/raw/*.pdf
+!data/raw/.gitkeep
 data/vector_db/*
 !data/vector_db/.gitkeep
