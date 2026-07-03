@@ -106,9 +106,30 @@ async def upload_pdf(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     global chunks, bm25
+
+    # Step 1 — reload all documents and chunks
     documents = load_pdfs(RAW_DIR)
     chunks = chunk_documents(documents)
     bm25 = build_bm25_index(chunks)
+
+    # Step 2 — delete existing ChromaDB collection and rebuild with embeddings
+    try:
+        from scripts.ingest import embed_chunks, store_in_chromadb
+        import chromadb
+
+        chroma_client = chromadb.PersistentClient(path=VECTOR_DB_PATH)
+
+        # Delete old collection if exists so we rebuild fresh
+        try:
+            chroma_client.delete_collection(name=COLLECTION_NAME)
+        except Exception:
+            pass
+
+        embedded_chunks = embed_chunks(chunks)
+        store_in_chromadb(embedded_chunks, db_path=VECTOR_DB_PATH, collection_name=COLLECTION_NAME)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Embedding failed: {str(e)}")
 
     return {
         "message": f"{file.filename} uploaded successfully",
