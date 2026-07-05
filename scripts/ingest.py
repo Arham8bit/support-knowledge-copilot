@@ -66,6 +66,7 @@ def embed_chunks(chunks, batch_size=20, max_retries=5):
 
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
+        result = None
 
         for attempt in range(max_retries):
             try:
@@ -82,6 +83,12 @@ def embed_chunks(chunks, batch_size=20, max_retries=5):
                 else:
                     raise  # if it's a different kind of error, don't hide it, crash loudly
 
+        if result is None:
+            raise RuntimeError(
+                f"Failed to embed batch starting at chunk {i} after {max_retries} retries — "
+                f"Gemini embedding quota likely exhausted for now. Try again later."
+            )
+
         for j, embedding_obj in enumerate(result.embeddings):
             chunk_copy = chunks[i + j].copy()
             chunk_copy["embedding"] = embedding_obj.values
@@ -89,6 +96,8 @@ def embed_chunks(chunks, batch_size=20, max_retries=5):
 
         print(f"Embedded {min(i + batch_size, len(texts))}/{len(texts)} chunks")
         time.sleep(5)  # longer pause between batches to respect the per-minute limit
+
+    return embedded_chunks
 
     return embedded_chunks
 def store_in_chromadb(embedded_chunks, db_path="data/vector_db", collection_name="support_docs"):

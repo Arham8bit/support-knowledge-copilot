@@ -3,13 +3,13 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'scripts'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Security, Depends
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse 
 from fastapi.staticfiles import StaticFiles  # <-- Added to handle your frontend folder's static files
 from pydantic import BaseModel
 import shutil
-
 from scripts.ingest import load_pdfs, chunk_documents
 from scripts.bm25_retrieval import build_bm25_index, bm25_search
 from scripts.hybrid_retrieval import semantic_search, reciprocal_rank_fusion
@@ -31,7 +31,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# --- API Key Authentication ---
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+async def verify_api_key(key: str = Security(api_key_header)):
+    from app.core.config import API_KEY
+    if not API_KEY:
+        return  # if no key configured, skip auth (useful for local dev)
+    if key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid or missing API key. Include X-API-Key header."
+        )
 # --- Graceful startup — works even if data/raw/ is empty ---
 print("Starting Support Knowledge Copilot...")
 
@@ -94,18 +105,32 @@ def health():
     return {"status": "healthy", "chunks_indexed": len(chunks)}
 
 
-@app.post("/upload")
+import time  # add this import at the top of the file if it's not already there
+
+@app.post("/upload", dependencies=[Depends(verify_api_key)])
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
-
+    global chunks, bm25
     os.makedirs(RAW_DIR, exist_ok=True)
     save_path = os.path.join(RAW_DIR, file.filename)
 
+    # Deduplication check — don't re-index if file already exists
+    if os.path.exists(save_path):
+        existing_chunks = [c for c in chunks if c["source"] == file.filename]
+        return {
+            "message": f"{file.filename} already exists and is indexed",
+            "filename": file.filename,
+            "total_chunks": len(chunks),
+            "chunks_added": len(existing_chunks),
+            "processing_time_seconds": 0.0,
+            "status": "skipped"
+        }
+
+    start_time = time.time()
+
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-
-    global chunks, bm25
 
     # Step 1 — reload all documents and chunks
     documents = load_pdfs(RAW_DIR)
@@ -119,7 +144,6 @@ async def upload_pdf(file: UploadFile = File(...)):
 
         chroma_client = chromadb.PersistentClient(path=VECTOR_DB_PATH)
 
-        # Delete old collection if exists so we rebuild fresh
         try:
             chroma_client.delete_collection(name=COLLECTION_NAME)
         except Exception:
@@ -131,14 +155,20 @@ async def upload_pdf(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Embedding failed: {str(e)}")
 
+    elapsed = round(time.time() - start_time, 2)
+    new_chunks = [c for c in chunks if c["source"] == file.filename]
+
     return {
         "message": f"{file.filename} uploaded successfully",
         "filename": file.filename,
-        "total_chunks": len(chunks)
+        "total_chunks": len(chunks),
+        "chunks_added": len(new_chunks),
+        "processing_time_seconds": elapsed,
+        "status": "success"
     }
 
 
-@app.post("/query", response_model=QueryResponse)
+@app.post("/query", response_model=QueryResponse,dependencies=[Depends(verify_api_key)])
 def query(request: QueryRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")

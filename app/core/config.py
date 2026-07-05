@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+API_KEY = os.getenv("API_KEY")
 
 # Use /tmp on Hugging Face Spaces (only writable directory)
 # Fall back to local data/ for local development
