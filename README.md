@@ -89,6 +89,73 @@ User Question
 
 ---
 
+## Automation — n8n ingestion pipeline
+
+Manually uploading every new document isn't how a real support team would use this. So the ingestion path is automated end-to-end: **drop a PDF in Google Drive → it's chunked, embedded, and searchable within minutes — zero manual upload required.**
+
+```
+                    ┌─────────────────────┐
+                    │   Schedule Trigger   │
+                    │   (poll every 1 min) │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │  Google Drive Search  │
+                    │  (scoped to 1 folder) │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │   Download file       │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │   POST /upload        │───────┐
+                    │   (X-API-Key auth)    │        │  error
+                    └──────────┬───────────┘        │
+                          success/skipped            │
+                               │                      │
+                    ┌──────────▼───────────┐          │
+                    │   IF: status ==       │          │
+                    │   "success"?          │          │
+                    └────┬─────────────┬────┘          │
+                    true │             │ false          │
+              ┌──────────▼──┐        (skip,       ┌────▼────────┐
+              │ Discord:     │      no message)    │ Discord:    │
+              │ ✅ new file  │                      │ ⚠️ failed   │
+              │ indexed      │                      │ upload      │
+              └──────────────┘                      └─────────────┘
+```
+
+**A second, independent workflow** runs a `GET /health` check every 10 minutes to keep the Hugging Face Space container warm — free-tier Spaces sleep after inactivity, and a cold container caused early ingestion runs to hang or time out.
+
+```
+Schedule Trigger (every 10 min) ──▶ GET /health
+```
+
+### Why this design
+
+| Decision | Reason |
+|---|---|
+| Dedup handled by the backend, not n8n | The `/upload` endpoint already checks `os.path.exists()` before re-processing. An n8n "Remove Duplicates" node adds a second, stateful source of truth that can drift out of sync with the backend — filename-based dedup on the server is simpler and more transparent to debug. |
+| Three-way branching (`success` / `skipped` / `error`) | A naive "did it work?" check conflates "already indexed, correctly skipped" with "failed" — you'd get false failure alerts on every re-scan of an already-processed file. The IF node explicitly checks `status == "success"` before notifying, so skipped files pass through silently. |
+| `Continue (using error output)` on the HTTP Request node | Without this, a real backend error (e.g. embedding quota exhausted) would either halt the whole workflow or get silently absorbed into the normal output — indistinguishable from a success. This setting routes genuine failures to a dedicated error output, wired straight to a failure notification. |
+| Separate keep-alive workflow | Keeping it independent of the ingestion workflow means a health-check failure can't block or interfere with an actual file upload in progress. |
+
+### Setup
+
+Workflow exports are in [`n8n/`](n8n/):
+- `n8n/ingestion-pipeline.json` — Drive → dedup-safe upload → status-aware Discord notification
+- `n8n/health-check.json` — keep-alive ping
+
+To use:
+1. Import both JSON files into your own n8n instance
+2. Connect your own **Google Drive** and **Discord Bot** credentials
+3. Replace the placeholder `X-API-Key` value in the HTTP Request node with your actual key (never commit this value directly — set it in n8n's credential/expression system instead)
+4. Update the target URL in both HTTP Request nodes to your own deployed Space
+5. Set both workflows to **Active**
+
+---
+
 ## Tech stack
 
 | Layer | Tool | Reason |
@@ -101,6 +168,7 @@ User Question
 | Fusion | Reciprocal Rank Fusion | Rank-based merge, no scale normalization needed |
 | Generation | Gemini `gemini-2.5-flash` | Free tier, fast, strong instruction-following |
 | API | `FastAPI` + `uvicorn` | Auto-generates Swagger docs, production-ready |
+| Automation | `n8n` | Drive-triggered ingestion + Discord status alerts, no manual uploads |
 | Testing | `pytest` | 4 automated tests covering ingestion edge cases |
 
 ---
@@ -117,6 +185,9 @@ support-knowledge-copilot/
 │   ├── bm25_retrieval.py      # BM25 index build + keyword search
 │   ├── hybrid_retrieval.py    # Semantic search + RRF fusion
 │   └── generation.py          # Prompt template + Gemini call + citations
+├── n8n/
+│   ├── ingestion-pipeline.json  # Drive → chunk/embed → status-aware Discord notify
+│   └── health-check.json       # Keep-alive ping to prevent free-tier Space sleep
 ├── data/
 │   ├── raw/                   # ← drop your PDFs here
 │   └── vector_db/             # ChromaDB index (auto-generated, gitignored)
@@ -218,6 +289,8 @@ Covers: whitespace cleaning, edge cases (blank pages, None text), chunking metad
 **RRF over score normalization** — BM25 scores and cosine distances have incomparable scales and distributions. Rank position is the only fair common denominator.
 
 **Skip-if-exists on ingestion** — re-running `ingest.py` checks `collection.count()` before calling the embedding API, avoiding wasted quota on unchanged data.
+
+**Automated ingestion via n8n, dedup on the backend** — the automation layer triggers uploads automatically from Google Drive, but the actual "is this already indexed?" decision lives in the FastAPI backend rather than in n8n's own stateful memory — one source of truth, easier to debug.
 
 ---
 
