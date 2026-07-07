@@ -1,0 +1,295 @@
+{
+  "name": "n8n-support-copilot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        128,
+        0
+      ],
+      "id": "d5e42ecb-c0b1-461c-b430-ae472be7d58f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "parents in '16zIsE2vL360XpsykoWfhNC7jAZ-pX8pi'",
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        352,
+        0
+      ],
+      "id": "aad61b33-1fb9-4fe5-aae8-75bc87d542c2",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "q8JWSdtakCo0doQ9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "7f63cd40-4a23-433a-a455-add935bf64d7",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "q8JWSdtakCo0doQ9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://pololololo-support-knowledge-copilot.hf.space/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "de0392d5288326c844796df07317abd3"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "df531fcd-88f5-4dbe-9db3-6cb8499d38f3",
+      "name": "HTTP Request",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1523685481580073031",
+          "mode": "list",
+          "cachedResultName": "Testing Server",
+          "cachedResultUrl": "https://discord.com/channels/1523685481580073031"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1523685482075263169",
+          "mode": "list",
+          "cachedResultName": "general",
+          "cachedResultUrl": "https://discord.com/channels/1523685481580073031/1523685482075263169"
+        },
+        "content": "=Salaam New file uploaded and processed: {{ $json.filename }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -16
+      ],
+      "id": "4511b9bb-a5e0-4891-bc20-1f410e789089",
+      "name": "Success upload",
+      "webhookId": "bdea084b-25d2-4279-b83f-1ae14c3f9ea4",
+      "credentials": {
+        "discordBotApi": {
+          "id": "doD0z5UeflxP71dt",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1523685481580073031",
+          "mode": "list",
+          "cachedResultName": "Testing Server",
+          "cachedResultUrl": "https://discord.com/channels/1523685481580073031"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1523685482075263169",
+          "mode": "list",
+          "cachedResultName": "general",
+          "cachedResultUrl": "https://discord.com/channels/1523685481580073031/1523685482075263169"
+        },
+        "content": "=Upload failed for {{ $('Download file').item.json.name }}: {{ $json.detail || 'unknown error' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        176
+      ],
+      "id": "c154013d-15ee-43f5-ae09-ac1db2edaf9c",
+      "name": "upload failed",
+      "webhookId": "bdea084b-25d2-4279-b83f-1ae14c3f9ea4",
+      "credentials": {
+        "discordBotApi": {
+          "id": "doD0z5UeflxP71dt",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fec0f6ff-4c35-43e3-890d-b83f70998456",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1056,
+        -96
+      ],
+      "id": "5226d256-a4a2-4a6b-baf5-4af7866242ad",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "upload failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Success upload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e2378d93-1050-4583-9b97-38e61a29418a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c829fb12987ec72119fbda569324f55cd401dd2608766e2cfdaadabfcc54f0d"
+  },
+  "nodeGroups": [],
+  "id": "PR45etoN4aN77DNe",
+  "tags": []
+}
